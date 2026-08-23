@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DeltaLauncher - Home</title>
+  <script src="../cursor.js"></script>
+  <style>
+    
+    @font-face {
+      font-family: 'Determination Mono';
+      src: url('./determinationMono.ttf') format('truetype');
+    }
+    #grid-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    /* bgm notif */
+    .now-playing {
+      position: fixed;
+      top: 30px;
+      right: -500px;
+      max-width: 200px;
+      height: auto;
+      z-index: 2000;
+      pointer-events: none;
+      opacity: 0;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      transition: right 0.6s cubic-bezier(0.39, 0.575, 0.565, 1),
+        opacity 0.6s cubic-bezier(0.39, 0.575, 0.565, 1);
+    }
+
+    .now-playing.show {
+      right: 30px;
+      opacity: 1;
+    }
+
+    body {
+      background-color: #000000;
+      color: #ffffff;
+      font-family: 'Determination Mono', monospace, sans-serif;
+      text-shadow: 1px 1px 0px #121032;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+      z-index: 10;
+    }
+
+    .header-group {
+      position: relative;
+      margin-bottom: 20px;
+      display: inline-block;
+    }
+
+    .logo-img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    .splash-text {
+      position: absolute;
+      top: 50px;
+      right: -90px;
+      color: #ffff00;
+      font-size: 1.6rem;
+      transform: rotate(-15deg);
+      text-shadow: 2px 2px 0px #3f3f00;
+      width: 200px;
+      line-height: 1.2;
+      animation: pulse 1s infinite alternate;
+      pointer-events: none;
+    }
+
+    @keyframes pulse {
+      0% { transform: rotate(-15deg) scale(1); }
+      100% { transform: rotate(-15deg) scale(1.05); }
+    }
+
+    .credits {
+      font-size: 1rem;
+      color: #cccccc;
+      margin-bottom: 40px;
+      text-shadow: 1px 1px 0px #000000;
+    }
+
+    .button-group {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      width: 100%;
+      max-width: 450px;
+    }
+
+    .btn {
+      background-color: #000000;
+      color: #ffffff;
+      border: 4px solid #ffffff;
+      padding: 18px 24px;
+      font-family: 'Determination Mono', monospace, sans-serif;
+      font-size: 1.2rem;
+      cursor: pointer;
+      text-decoration: none;
+      text-transform: uppercase;
+      transition: background-color 0.2s, color 0.2s;
+      box-sizing: border-box;
+      text-shadow: 2px 2px 0px #000000;
+    }
+
+    .btn:hover {
+      background-color: #ffffff;
+      color: #25262c;
+      text-shadow: none;
+    }
+
+    .controls-group {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      gap: 10px;
+      z-index: 1000;
+    }
+
+    .ctrl-btn {
+      background-color: #000000;
+      color: #888888;
+      border: 2px solid #888888;
+      padding: 8px 12px;
+      font-family: 'Determination Mono', monospace, sans-serif;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-shadow: 1px 1px 0px #000000;
+    }
+
+    .ctrl-btn:hover {
+      color: #ffffff;
+      border-color: #ffffff;
+    }
+
+    .ctrl-btn.active {
+      color: #55ff55;
+      border-color: #55ff55;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="grid-canvas"></canvas>
+
+  <div class="container">
+    <div class="header-group">
+      <img src="./assets/logo.png" alt="DeltaLauncher Logo" class="logo-img">
+      <div class="splash-text" id="splash"></div>
+    </div>
+
+    <p class="credits">Made with love by [ElectricFuzzball]</p>
+
+    <div class="button-group">
+      <a href="./subpages/loader.html" class="btn">LAUNCHER</a>
+      <a href="./subpages/blog.html" class="btn">BLOG</a>
+      <a href="./subpages/mailinglist.html" class="btn">MAILING LIST</a>
+      <a href="./subpages/credits.html" class="btn">CREDITS</a>
+      <a href="./subpages/shop.html" class="btn">ACHIEVEMENTS</a>
+      <a href="./subpages/aboutMe.html" class="btn">ABOUT THE CREATOR</a>
+    </div>
+  </div>
+
+  <div class="controls-group">
+    <button id="vfx-toggle" class="ctrl-btn active">[ VFX: ON ]</button>
+    <button id="music-toggle" class="ctrl-btn">[ MUSIC: OFF ]</button>
+  </div>
+
+  <audio id="bg-music" src="./assets/music/mus_launcher.ogg" loop></audio>
+  <img id="now-playing" src="./assets/musicsplash.png" class="now-playing" alt="Now Playing">
+
+  <script>
+    const canvas = document.getElementById('grid-canvas');
+    const ctx = canvas.getContext('2d');
+
+    let vfxEnabled = true;
+    let offsetX1 = 0, offsetY1 = 0;
+    let offsetX2 = 0, offsetY2 = 0;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function drawGridPattern(offsetX, offsetY, strokeStyle, lineWidth) {
+      const cellSize = 60; // box size
+
+      ctx.strokeStyle = strokeStyle;
+      ctx.lineWidth = lineWidth;
+
+      const startX = (offsetX % cellSize) - cellSize;
+      const startY = (offsetY % cellSize) - cellSize;
+      for (let x = startX; x < canvas.width + cellSize; x += cellSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = startY; y < canvas.height + cellSize; y += cellSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+    }
+
+    function render() {
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      if (vfxEnabled) {
+        offsetX1 -= 0.8;
+        offsetY1 -= 0.8;
+        offsetX2 += 0.4;
+        offsetY2 += 0.4;
+        drawGridPattern(offsetX2, offsetY2, 'rgba(160, 0, 160, 0.35)', 1);
+
+        drawGridPattern(offsetX1, offsetY1, 'rgba(255, 0, 255, 0.75)', 1.5);
+      } else {
+        drawGridPattern(0, 0, 'rgba(255, 0, 255, 0.4)', 1);
+      }
+
+      requestAnimationFrame(render);
+    }
+    render();
+    const moveSound = new Audio('./assets/sounds/snd_menumove.wav');
+    const selectSound = new Audio('./assets/sounds/snd_select.wav');
+
+    const navButtons = document.querySelectorAll('.button-group .btn');
+    navButtons.forEach(btn => {
+      btn.addEventListener('mouseenter', () => {
+        moveSound.currentTime = 0;
+        moveSound.play().catch(() => {});
+      });
+      btn.addEventListener('click', () => {
+        selectSound.currentTime = 0;
+        selectSound.play().catch(() => {});
+      });
+    });
+
+    const vfxBtn = document.getElementById('vfx-toggle');
+    vfxBtn.addEventListener('click', () => {
+      vfxEnabled = !vfxEnabled;
+      vfxBtn.textContent = vfxEnabled ? '[ VFX: ON ]' : '[ VFX: OFF ]';
+      vfxBtn.classList.toggle('active', vfxEnabled);
+    });
+
+    fetch('./splash.txt')
+      .then(response => {
+        if (!response.ok) throw new Error('Network error');
+        return response.text();
+      })
+      .then(text => {
+        const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+        if (lines.length > 0) {
+          const randomIndex = Math.floor(Math.random() * lines.length);
+          document.getElementById('splash').textContent = lines[randomIndex];
+        } else {
+          document.getElementById('splash').textContent = 'splashin it!';
+        }
+      })
+      .catch(() => {
+        document.getElementById('splash').textContent = 'error!';
+      });
+
+    const audio = document.getElementById('bg-music');
+    const musicBtn = document.getElementById('music-toggle');
+    const nowPlaying = document.getElementById('now-playing');
+    let splashTimeout;
+
+    audio.volume = 0.75;
+
+    musicBtn.addEventListener('click', () => {
+      if (audio.paused) {
+        audio.play().then(() => {
+          musicBtn.textContent = '[ MUSIC: ON ]';
+          musicBtn.classList.add('active');
+          nowPlaying.classList.add('show');
+          clearTimeout(splashTimeout);
+          splashTimeout = setTimeout(() => {
+            nowPlaying.classList.remove('show');
+          }, 3000);
+        }).catch(err => console.error("audio error:", err));
+      } else {
+        audio.pause();
+        musicBtn.textContent = '[ MUSIC: OFF ]';
+        musicBtn.classList.remove('active');
+        nowPlaying.classList.remove('show');
+      }
+    });
+  </script>
+
+</body>
+</html>

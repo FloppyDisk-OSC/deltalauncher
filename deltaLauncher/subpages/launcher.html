@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DeltaLauncher - Launcher</title>
+  <style>
+    @font-face {
+      font-family: 'Determination Mono';
+      src: url('../determinationMono.ttf') format('truetype');
+    }
+
+    #grid-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    /* BGM Notif */
+    .now-playing {
+      position: fixed;
+      top: 30px;
+      right: -500px;
+      max-width: 200px;
+      height: auto;
+      z-index: 2000;
+      pointer-events: none;
+      opacity: 0;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      transition: right 0.6s cubic-bezier(0.39, 0.575, 0.565, 1),
+                  opacity 0.6s cubic-bezier(0.39, 0.575, 0.565, 1);
+    }
+
+    .now-playing.show {
+      right: 30px;
+      opacity: 1;
+    }
+
+    body {
+      background-color: #000000;
+      color: #ffffff;
+      font-family: 'Determination Mono', monospace, sans-serif;
+      text-shadow: 1px 1px 0px #121032;
+      margin: 0;
+      padding: 50px 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      box-sizing: border-box;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+      z-index: 10;
+      max-width: 750px;
+      width: 100%;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      margin-bottom: 25px;
+      font-weight: normal;
+      letter-spacing: 1px;
+    }
+
+    .notice {
+      line-height: 1.5;
+      font-size: 1rem;
+      margin-bottom: 20px;
+      color: #dddddd;
+    }
+
+    .disclaimer {
+      color: #ff3333;
+      font-weight: normal;
+      font-size: 1.05rem;
+      margin-bottom: 15px;
+      text-transform: uppercase;
+      line-height: 1.4;
+      text-shadow: 1px 1px 0px #3f0000;
+    }
+
+    .joke-notice {
+      color: #40ffaa;
+      font-size: 0.95rem;
+      margin-bottom: 30px;
+    }
+
+    .new-arrival-banner {
+      width: 100%;
+      background: linear-gradient(90deg, rgba(0,0,0,0) 0%, #cc2222 50%, rgba(0,0,0,0) 100%);
+      color: #ffff00;
+      font-weight: normal;
+      font-size: 1.3rem;
+      padding: 10px 0;
+      margin: 20px 0;
+      text-shadow: 2px 2px 0px #000000;
+    }
+
+    .featured-game {
+      margin-bottom: 40px;
+    }
+
+    .featured-img {
+      max-width: 240px;
+      height: auto;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    .featured-img:hover {
+      transform: scale(1.05);
+    }
+
+    .links-heading {
+      font-size: 1.2rem;
+      text-decoration: underline;
+      margin-bottom: 25px;
+      color: #ffffff;
+    }
+
+    .game-links {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      width: 100%;
+      max-width: 450px;
+      margin-bottom: 40px;
+    }
+
+    .btn {
+      background-color: #000000;
+      color: #ffffff;
+      border: 4px solid #ffffff;
+      padding: 14px 20px;
+      font-family: 'Determination Mono', monospace, sans-serif;
+      font-size: 1.2rem;
+      cursor: pointer;
+      text-decoration: none;
+      text-transform: uppercase;
+      transition: background-color 0.2s, color 0.2s;
+      box-sizing: border-box;
+      text-shadow: 2px 2px 0px #000000;
+      display: block;
+    }
+
+    .btn:hover {
+      background-color: #ffffff;
+      color: #25262c;
+      text-shadow: none;
+    }
+
+    .footer-note {
+      font-size: 0.9rem;
+      color: #cccccc;
+      line-height: 1.6;
+      margin-bottom: 30px;
+    }
+
+    .highlight-yellow {
+      color: #ffff00;
+    }
+
+    .back-nav {
+      margin-top: 10px;
+      width: 100%;
+      max-width: 450px;
+    }
+
+    .controls-group {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      gap: 10px;
+      z-index: 1000;
+    }
+
+    .ctrl-btn {
+      background-color: #000000;
+      color: #888888;
+      border: 2px solid #888888;
+      padding: 8px 12px;
+      font-family: 'Determination Mono', monospace, sans-serif;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-shadow: 1px 1px 0px #000000;
+    }
+
+    .ctrl-btn:hover {
+      color: #ffffff;
+      border-color: #ffffff;
+    }
+
+    .ctrl-btn.active {
+      color: #55ff55;
+      border-color: #55ff55;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="grid-canvas"></canvas>
+
+  <div class="container">
+    <h1>My... DeltaLauncher..</h1>
+
+    <div class="notice">
+      Welcome to the DeltaLauncher! Here, I host games. Yes, I plan to add more games.<br>
+      I am NOT responsible for any trouble or misconduct you get up to while on this site :3<br>
+      Use with responsibility.
+    </div>
+
+    <div class="disclaimer">
+      I DO NOT OWN ANY OF THE ASSETS! THEY ALL BELONG TO THEIR RESPECTIVE OWNERS AND/OR IPs!
+    </div>
+
+    <div class="joke-notice">
+      PLEASE DONT NUKE ME TOBY I WANNA LIVE TO SEE CHAPTER 7
+    </div>
+
+    <!-- Featured Game -->
+    <div class="new-arrival-banner">
+      New Arrival!
+    </div>
+
+    <div class="featured-game">
+      <a href="#pizza-tower">
+        <img src="../assets/pizzatower.png" alt="Pizza Tower" class="featured-img">
+      </a>
+    </div>
+
+    <!-- Game List Links -->
+    <div class="links-heading">Links</div>
+
+    <div class="game-links">
+      <a href="#deltarune" class="btn">Deltarune</a>
+      <a href="#undertale" class="btn">Undertale</a>
+      <a href="#sm64" class="btn">Super Mario 64</a>
+      <a href="#sonic-mania" class="btn">Sonic Mania</a>
+      <a href="#minecraft" class="btn">Minecraft: Java Edition</a>
+    </div>
+
+    <div class="footer-note">
+      I know <span class="highlight-yellow">MINECRAFT</span> is broken at the moment.<br>
+      I'm working on fixing it.
+    </div>
+
+    <div class="back-nav">
+      <a href="../index.html" class="btn">[ RETURN TO HOME ]</a>
+    </div>
+  </div>
+
+  <div class="controls-group">
+    <button id="vfx-toggle" class="ctrl-btn active">[ VFX: ON ]</button>
+    <button id="music-toggle" class="ctrl-btn">[ MUSIC: OFF ]</button>
+  </div>
+
+  <audio id="bg-music" src="../assets/music/mus_launcher.ogg" loop></audio>
+  <img id="now-playing" src="../assets/musicsplash.png" class="now-playing" alt="Now Playing">
+
+  <script>
+    const canvas = document.getElementById('grid-canvas');
+    const ctx = canvas.getContext('2d');
+
+    let vfxEnabled = true;
+    let offsetX1 = 0, offsetY1 = 0;
+    let offsetX2 = 0, offsetY2 = 0;
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function drawGridPattern(offsetX, offsetY, strokeStyle, lineWidth) {
+      const cellSize = 60;
+
+      ctx.strokeStyle = strokeStyle;
+      ctx.lineWidth = lineWidth;
+
+      const startX = (offsetX % cellSize) - cellSize;
+      const startY = (offsetY % cellSize) - cellSize;
+      for (let x = startX; x < canvas.width + cellSize; x += cellSize) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = startY; y < canvas.height + cellSize; y += cellSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+    }
+
+    function render() {
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      if (vfxEnabled) {
+        offsetX1 -= 0.8;
+        offsetY1 -= 0.8;
+        offsetX2 += 0.4;
+        offsetY2 += 0.4;
+        drawGridPattern(offsetX2, offsetY2, 'rgba(160, 0, 160, 0.35)', 1);
+        drawGridPattern(offsetX1, offsetY1, 'rgba(255, 0, 255, 0.75)', 1.5);
+      } else {
+        drawGridPattern(0, 0, 'rgba(255, 0, 255, 0.4)', 1);
+      }
+
+      requestAnimationFrame(render);
+    }
+    render();
+
+    // Sound FX setup
+    const moveSound = new Audio('../assets/sounds/snd_menumove.wav');
+    const selectSound = new Audio('../assets/sounds/snd_select.wav');
+
+    const interactiveElements = document.querySelectorAll('.btn, .featured-img');
+    interactiveElements.forEach(el => {
+      el.addEventListener('mouseenter', () => {
+        moveSound.currentTime = 0;
+        moveSound.play().catch(() => {});
+      });
+      el.addEventListener('click', () => {
+        selectSound.currentTime = 0;
+        selectSound.play().catch(() => {});
+      });
+    });
+
+    // Control buttons setup
+    const vfxBtn = document.getElementById('vfx-toggle');
+    vfxBtn.addEventListener('click', () => {
+      vfxEnabled = !vfxEnabled;
+      vfxBtn.textContent = vfxEnabled ? '[ VFX: ON ]' : '[ VFX: OFF ]';
+      vfxBtn.classList.toggle('active', vfxEnabled);
+    });
+
+    const audio = document.getElementById('bg-music');
+    const musicBtn = document.getElementById('music-toggle');
+    const nowPlaying = document.getElementById('now-playing');
+    let splashTimeout;
+
+    audio.volume = 0.75;
+
+    musicBtn.addEventListener('click', () => {
+      if (audio.paused) {
+        audio.play().then(() => {
+          musicBtn.textContent = '[ MUSIC: ON ]';
+          musicBtn.classList.add('active');
+          nowPlaying.classList.add('show');
+          clearTimeout(splashTimeout);
+          splashTimeout = setTimeout(() => {
+            nowPlaying.classList.remove('show');
+          }, 3000);
+        }).catch(err => console.error("audio error:", err));
+      } else {
+        audio.pause();
+        musicBtn.textContent = '[ MUSIC: OFF ]';
+        musicBtn.classList.remove('active');
+        nowPlaying.classList.remove('show');
+      }
+    });
+  </script>
+
+</body>
+</html>

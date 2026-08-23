@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: monospace;
+      background-color: #121212;
+      color: #00ffcc;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+    }
+
+    .status-bar {
+      background: #1e1e1e;
+      border: 1px solid #00ffcc;
+      padding: 10px 20px;
+      margin-bottom: 15px;
+      border-radius: 4px;
+      width: 80%;
+      max-width: 800px;
+      text-align: center;
+    }
+
+    .embed-container {
+      position: relative;
+      width: 100%;
+      max-width: 800px;
+      height: 500px;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: 2px solid #333;
+      border-radius: 6px;
+      background-color: #000;
+    }
+
+    .key-highlight {
+      color: #ff007f;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="embed-container" id="embedContainer">
+    <iframe 
+      id="noiseFrame"
+      src="https://www.autistici.org/burnedprojects/NoiseUpdate/"
+      allow="autoplay">
+    </iframe>
+  </div>
+
+  <script>
+    const lastKeyEl = document.getElementById('lastKey');
+    const keyCodeEl = document.getElementById('keyCode');
+    const iframe = document.getElementById('noiseFrame');
+
+    // Key event listeners
+    document.addEventListener('keydown', (event) => {
+      if (lastKeyEl) lastKeyEl.textContent = event.key === ' ' ? 'Space' : event.key;
+      if (keyCodeEl) keyCodeEl.textContent = event.code;
+
+      console.log(`Key: ${event.key} | Code: ${event.code}`);
+    });
+
+    window.addEventListener('blur', () => {
+      if (document.activeElement === iframe) {
+        if (lastKeyEl) lastKeyEl.textContent = 'Focus lost (clicked inside iframe)';
+        if (keyCodeEl) keyCodeEl.textContent = 'N/A';
+      }
+    });
+
+    // Focus management logic
+    function focusIframe() {
+      if (iframe) {
+        iframe.focus();
+      }
+    }
+
+    window.addEventListener('load', focusIframe);
+    document.addEventListener('click', focusIframe);
+  </script>
+</body>
+</html>

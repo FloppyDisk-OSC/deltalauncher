@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/x-icon" href="../assets/favicon.ico">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DeltaLauncher - Game Library</title>
+  <style>
+    @font-face {
+      font-family: 'Determination Mono';
+      src: url('../determinationMono.ttf') format('truetype');
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: #000000;
+      color: #ffffff;
+      font-family: 'Determination Mono', monospace, sans-serif;
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top Control Bar */
+    .loader-bar {
+      height: 40px;
+      background-color: #000000;
+      border-bottom: 2px solid #ffffff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 15px;
+      z-index: 100;
+      flex-shrink: 0;
+    }
+
+    .game-title {
+      color: #ffff00;
+      font-size: 1.1rem;
+      text-shadow: 1px 1px 0px #3f3f00;
+    }
+
+    .nav-actions {
+      display: flex;
+      gap: 15px;
+    }
+
+    .btn-action {
+      background: none;
+      border: none;
+      color: #ffffff;
+      font-family: 'Determination Mono', monospace;
+      font-size: 1rem;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: color 0.1s ease;
+    }
+
+    .btn-action:hover {
+      color: #ffff00;
+    }
+
+    /* Main Workspace Layout */
+    .workspace {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 40px);
+      width: 100%;
+    }
+
+    /* Left Sidebar - Game List */
+    .sidebar {
+      width: 260px;
+      background-color: #000000;
+      border-right: 2px solid #ffffff;
+      display: flex;
+      flex-direction: column;
+      padding: 15px 10px;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .sidebar-title {
+      color: #ff4040;
+      font-size: 1.2rem;
+      margin-bottom: 15px;
+      padding-left: 10px;
+      text-transform: uppercase;
+    }
+
+    .game-item {
+      display: flex;
+      align-items: center;
+      padding: 10px;
+      margin-bottom: 6px;
+      background-color: #000000;
+      border: 2px solid transparent;
+      color: #ffffff;
+      font-size: 1rem;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.1s ease;
+    }
+
+    .game-item:hover {
+      border-color: #ffffff;
+      color: #ffff00;
+    }
+
+    .game-item.active {
+      border-color: #ffff00;
+      background-color: #111111;
+      color: #ffff00;
+    }
+
+.game-item::before {
+  content: "";
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: 10px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  visibility: hidden; /* Hide icon for inactive items */
+}
+
+.game-item.active::before {
+  visibility: visible; /* Show icon for active selected item */
+  background-image: url('../assets/redSoul.webp');
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+    /* Right Viewport - Iframe Container */
+    .game-container {
+      flex: 1;
+      position: relative;
+      height: 100%;
+      background-color: #000000;
+    }
+
+    .game-container iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+
+    /* Loading Screen Overlay */
+    .loading-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #000000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 50;
+      transition: opacity 0.4s ease;
+    }
+
+    .loading-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .loading-text {
+      font-size: 1.6rem;
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Action Header -->
+  <div class="loader-bar">
+    <div class="game-title" id="current-game-title">* SELECT A GAME</div>
+    <div class="nav-actions">
+      <button class="btn-action" onclick="toggleFullscreen()">[ FULLSCREEN ]</button>
+      <button class="btn-action" onclick="reloadCurrentGame()">[ RELOAD ]</button>
+      <button class="btn-action" onclick="returnToLauncher()">[ EXIT ]</button>
+    </div>
+  </div>
+
+  <!-- Workspace split into Sidebar and Game Viewport -->
+  <div class="workspace">
+    
+    <!-- Game Selection Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-title">GAME DIRECTORY</div>
+      <div id="game-list-container"></div>
+    </div>
+
+    <!-- Active Game Viewport -->
+    <div class="game-container" id="viewport">
+      <div class="loading-overlay" id="loading-screen">
+        <div class="loading-text" id="loading-text">* Loading game...</div>
+      </div>
+      <div id="iframe-holder" style="width: 100%; height: 100%;"></div>
+    </div>
+
+  </div>
+
+  <!-- Shared Global Red Soul Cursor -->
+  <script src="../cursor.js"></script>
+
+  <script>
+    // ==========================================
+    // 1. GAMES REGISTRY OBJECT
+    // Add all your iframe embed codes or URLs here!
+    // ==========================================
+    const GAMES_REGISTRY = {
+      "delta": {
+        id: "delta",
+        title: "Deltarune",
+        iframeHtml: `<iframe id="game-iframe" src="https://deltalauncher.pages.dev" width="100%" height="100%" style="border: none;" title="Deltarune" allow="autoplay; keyboard; gamepad; fullscreen"></iframe>`
+      },
+      "smPlus": {
+        id: "smPlus",
+        title: "Sonic Mania Plus",
+          iframeHtml: `<iframe id="game-iframe" src="./games/sonic.html" width="100%" height="100%" style="border: none;" title="Sonic Mania" allow="autoplay; keyboard; gamepad; fullscreen; cross-origin-isolated"></iframe>`
+      },
+      "pizzaTower": {
+        id: "pizzaTower",
+        title: "Pizza Tower",
+          iframeHtml: `<iframe id="game-iframe" src="./games/pizzaTower.html" width="100%" height="100%" style="border: none;" title="Pizza Tower" allow="autoplay; keyboard; gamepad; fullscreen; cross-origin-isolated"></iframe>`
+      },
+      "jscraft": {
+        id: "jscraft",
+        title: "JS Craft",
+          iframeHtml: `<iframe id="game-iframe" src="./games/jscraft.html" width="100%" height="100%" style="border: none;" title="JS Craft" allow="autoplay; keyboard; gamepad; fullscreen; cross-origin-isolated"></iframe>`
+      },
+      "undertale": {
+      id: "undertale",
+      title: "Undertale",
+        iframeHtml: `<iframe id="game-iframe" src="./games/undertale.html" width="100%" height="100%" style="border: none;" title="Undertale" allow="autoplay; keyboard; gamepad; fullscreen; cross-origin-isolated"></iframe>`
+      }
+//      "hk": {
+//      id: "hk",
+//      title: "Hollow Knight",
+//        iframeHtml: `<iframe id="game-iframe" src="./games/hollowknight.html" width="100%" height="100%" style="border: none;" title="Hollow Knight" allow="autoplay; keyboard; gamepad; fullscreen; cross-origin-isolated"></iframe>`
+//      }
+    };
+
+    let activeGameId = null;
+    const selectSound = new Audio('../assets/sounds/snd_select.wav');
+
+    function initSidebar() {
+      const listContainer = document.getElementById('game-list-container');
+      listContainer.innerHTML = '';
+
+      Object.values(GAMES_REGISTRY).forEach((game, index) => {
+        const item = document.createElement('div');
+        item.className = 'game-item';
+        item.dataset.id = game.id;
+        item.textContent = game.title;
+        item.onclick = () => loadGame(game.id);
+
+        listContainer.appendChild(item);
+
+        if (index === 0) {
+          loadGame(game.id);
+        }
+      });
+    }
+
+    function loadGame(gameId) {
+      if (!GAMES_REGISTRY[gameId]) return;
+
+      const game = GAMES_REGISTRY[gameId];
+      activeGameId = gameId;
+
+      selectSound.play().catch(() => {});
+
+      document.querySelectorAll('.game-item').forEach(el => {
+        el.classList.toggle('active', el.dataset.id === gameId);
+      });
+
+      document.getElementById('current-game-title').textContent = `* PLAYING: ${game.title.toUpperCase()}`;
+
+      const loadingOverlay = document.getElementById('loading-screen');
+      loadingOverlay.classList.remove('hidden');
+
+      const holder = document.getElementById('iframe-holder');
+      holder.innerHTML = game.iframeHtml;
+
+      const iframe = holder.querySelector('iframe');
+      if (iframe) {
+        iframe.addEventListener('load', () => {
+          setTimeout(() => {
+            loadingOverlay.classList.add('hidden');
+            focusActiveGame();
+          }, 400);
+        });
+      }
+    }
+
+    function focusActiveGame() {
+      const iframe = document.querySelector('#iframe-holder iframe');
+      if (iframe) {
+        iframe.focus();
+      }
+    }
+
+    window.addEventListener('load', focusActiveGame);
+    document.addEventListener('click', focusActiveGame);
+
+    function toggleFullscreen() {
+      selectSound.play().catch(() => {});
+      const viewport = document.getElementById('viewport');
+      if (!document.fullscreenElement) {
+        viewport.requestFullscreen().catch(err => console.error(err));
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    function reloadCurrentGame() {
+      if (activeGameId) {
+        loadGame(activeGameId);
+      }
+    }
+
+    function returnToLauncher() {
+      selectSound.play().catch(() => {});
+      window.location.href = '../index.html';
+    }
+
+    initSidebar();
+  </script>
+</body>
+</html>

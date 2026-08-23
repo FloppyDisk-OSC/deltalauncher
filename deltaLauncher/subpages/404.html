@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link rel="icon" type="image/x-icon" href="./assets/favicon.ico">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dogcheck</title>
+  <style>
+    body {
+      background-color: #000000;
+      margin: 0;
+      padding: 0;
+      height: 100vh;  
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    .error-gif {
+      max-width: 90vw;
+      max-height: 90vh;
+      object-fit: contain;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+  </style>
+</head>
+<body>
+
+  <img src="../assets/404.gif" alt="A dog playing maracas" class="error-gif">
+  
+  <audio id="bg-music" src="../assets/music/mus_404.ogg" autoplay loop></audio>
+
+  <script>
+    const audio = document.getElementById('bg-music');
+    audio.volume = 0.75;
+
+    const playAudio = () => {
+      audio.play().then(() => {
+        document.removeEventListener('click', playAudio);
+        document.removeEventListener('keydown', playAudio);
+      }).catch(() => {});
+    };
+
+    document.addEventListener('click', playAudio);
+    document.addEventListener('keydown', playAudio);
+  </script>
+
+</body>
+</html>
